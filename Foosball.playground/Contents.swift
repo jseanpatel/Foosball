@@ -7,20 +7,25 @@ import AVFoundation
 
 // MARK: Control the view.
 let skView = SKView(frame: CGRect(x: 0, y: 0, width: 480, height: 320))
-var fingerOnBar = false
+
+// Quadrants of the screen for touch ID.
+let topRightQuad = CGRect(x: self.size.width * 0.25, y: self.size.height * 0.5, width: self.size.width * 0.25, height: self.size.height * 0.5)
+let bottomRightQuad = CGRect(x: self.size.width * 0.25, y: 0, width: self.size.width * 0.25, height: self.size.width * 0.5)
+let topLeftQuad = CGRect(x: self.size.width * 0.25, y: self.size.height * 0.5, width: self.size.width * 0.25, height: self.size.height * 0.5)
+let bottomLeftQuad = CGRect(x: 0, y: 0, width: self.size.width * 0.25, height: self.size.height * 0.5)
+
 
 class GameScene: SKScene {
-
-    // Categories for matching up user touch with appropriate object that is being touched.
-    let ballCategoryName = "ball"
-    let goalCategoryName = "goal"
-    let playerCategoryName = "player"
-
+    
     // Use to play background music while playground is running.
     let backgroundMusicPlayer = AVAudioPlayer()
 
     override init(size: CGSize) {
         super.init(size: size)
+        
+        // Define sections of the screen for user input.
+        let topRightQuad = SKShapeNode(rectOf: CGSize(width: self.size.width * 0.25, height: self.size.height * 0.5))
+        topRightQuad.position = CGPoint(x: self.sizeWidth * 0.25, y: self.size.height * 0.5)
 
         /**
         // Come back to configure the music here.
@@ -41,7 +46,6 @@ class GameScene: SKScene {
 
         // Make a test ball.
         let ball = SKShapeNode(circleOfRadius: 10)
-        ball.name = ballCategoryName
 
         ball.position = CGPoint(x: self.size.width * 0.50, y: self.size.height * 0.5)
         ball.fillColor = SKColor.purple
@@ -63,7 +67,6 @@ class GameScene: SKScene {
         // Make one of the bars that will hold the people.
 
         let character1 = SKSpriteNode(imageNamed: "FoosballTable")
-        character1.name = playerCategoryName
         character1.position = CGPoint(x: self.size.width * 0.25, y: self.size.height * 0.25)
 
         // Add the bar to the screen.
@@ -77,13 +80,11 @@ class GameScene: SKScene {
 
         // Make the left goal.
         let goalLeft = SKShapeNode(rectOf: CGSize(width: 20, height: 120))
-        goalLeft.name = goalCategoryName
         goalLeft.position = CGPoint(x: 0, y: self.size.height * 0.5)
         goalLeft.fillColor = SKColor.red
 
         // Make the right goal.
         let goalRight = SKShapeNode(rectOf: CGSize(width: 20, height: 120))
-        goalRight.name = goalCategoryName
         goalRight.position = CGPoint(x: self.size.width, y: self.size.height * 0.5)
         goalRight.fillColor = SKColor.red
 
@@ -96,6 +97,17 @@ class GameScene: SKScene {
         super.init(coder: aDecorder)
     }
     
+    func move(oldPosition: CGPoint, newPosition: CGPoint) {
+       // let character1 = self.childNode(withName: playerCategoryName) as! SKSpriteNode
+        
+        let xDistance = fabs(oldPosition.x - newPosition.x)
+        let yDistance = fabs(oldPosition.y - newPosition.y)
+        let distance = sqrt(xDistance * xDistance + yDistance * yDistance)
+        let sceneDiag = sqrt(self.frame.size.width * self.frame.size.width + self.frame.size.height * self.frame.size.height)
+        print(distance)
+        
+        character1.run(SKAction.move(to: newPosition, duration: Double(distance / sceneDiag)))
+    }
     
     // Tells object that a touch has been inputted to the view.
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -104,46 +116,52 @@ class GameScene: SKScene {
         let touch = touches.first // as UITouch = (already knows).
         let touchLocation = touch?.location(in: self)
         
+        if (topRightQuad.contains(touchLocation)) {
+            print("In the top right quadrant.")
+        }
+        
+        
         // Make sure that what touch is touching is actually the Foosball player.
         let body: SKPhysicsBody? = self.physicsWorld.body(at: touchLocation!)
-        print(body?.node?.name ?? "Name is nil")
         
-        
-        if body?.node?.name == playerCategoryName {
-            print("The bar is being moved.")
-            fingerOnBar = true
-        }
     }
     
     // Sends a signal to the gesture recognizers after touch has been identified.
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        /* let character1 = self.childNode(withName: playerCategoryName) as! SKSpriteNode
+        
+        let touchLocation = touches.first!.location(in: self)
+        if(character1.contains(touchLocation)) {
+            move(oldPosition: character1.position, newPosition: touchLocation)
+        }
+        
+        /*
         if fingerOnBar {
+            
             let touch = touches.first
             let touchLocation = touches.first!.location(in: self.view)
             let prevTouchLoc = touch?.previousLocation(in: self)
-            
             let character1 = self.childNode(withName: playerCategoryName) as! SKSpriteNode
             
-            // Change the touched position, newYPos because character will only be moved up a down.
-            
             // Configure the player position.
+            var newYPos = character1.position.y - (touchLocation.y - prevTouchLoc!.y)
             
-            var newYPos = character1.position.y + (touchLocation.y - (prevTouchLoc?.y)!)
+            // Set constraints so that the bar doesn't go off the screen.
             newYPos = max(character1.size.height / 2, newYPos)
-            newYPos = min(self.size.width - character1.size.width / 2, newYPos)
+            newYPos = min(self.size.height - character1.size.height / 2, newYPos)
             
             character1.position = CGPoint(x: character1.position.x, y: newYPos)
         }
+ */
     }
     
-    /**
+    
      // Responder is signalled when fingers are lifted, and the touch input ends.
      override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-     
      }
-     */
+  */
+    }
 }
-
 
 let gameScene = GameScene(size: skView.bounds.size)
 gameScene.scaleMode = .aspectFill
