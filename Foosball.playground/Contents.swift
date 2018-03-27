@@ -6,27 +6,26 @@ import SpriteKit
 import AVFoundation
 
 // MARK: Control the view.
-let skView = SKView(frame: CGRect(x: 0, y: 0, width: 480, height: 320))
+let skView = SKView(frame: CGRect(x: 0, y: 0, width: 320, height: 480))
 
 // Quadrants of the screen for touch ID.
-let topRightQuad = CGRect(x: self.size.width * 0.25, y: self.size.height * 0.5, width: self.size.width * 0.25, height: self.size.height * 0.5)
-let bottomRightQuad = CGRect(x: self.size.width * 0.25, y: 0, width: self.size.width * 0.25, height: self.size.width * 0.5)
-let topLeftQuad = CGRect(x: self.size.width * 0.25, y: self.size.height * 0.5, width: self.size.width * 0.25, height: self.size.height * 0.5)
-let bottomLeftQuad = CGRect(x: 0, y: 0, width: self.size.width * 0.25, height: self.size.height * 0.5)
-
 
 class GameScene: SKScene {
     
+    var topRightQuad = CGRect(x: skView.frame.width * 0.5, y: skView.frame.height * 0.25, width: skView.frame.width * 0.5, height: skView.frame.height * 0.25)
+    var bottomRightQuad = CGRect(x: skView.frame.width * 0.5, y: 0, width: skView.frame.width * 0.5, height: skView.frame.width * 0.25)
+    var topLeftQuad = CGRect(x: 0, y: skView.frame.height * 0.25, width: skView.frame.width * 0.25, height: skView.frame.height * 0.25)
+    var bottomLeftQuad = CGRect(x: 0, y: 0, width: skView.frame.width * 0.25, height: skView.frame.height * 0.25)
+    
     // Use to play background music while playground is running.
     let backgroundMusicPlayer = AVAudioPlayer()
+    
+    // Variable to know when finger is continuously on screen.
+    var fingerOnScreen = false
 
     override init(size: CGSize) {
         super.init(size: size)
         
-        // Define sections of the screen for user input.
-        let topRightQuad = SKShapeNode(rectOf: CGSize(width: self.size.width * 0.25, height: self.size.height * 0.5))
-        topRightQuad.position = CGPoint(x: self.sizeWidth * 0.25, y: self.size.height * 0.5)
-
         /**
         // Come back to configure the music here.
         let backgroundImage = SkSpriteNode(imageNamed "INSERTIMAGENAME")
@@ -64,107 +63,129 @@ class GameScene: SKScene {
         // Get the ball moving.
         ball.physicsBody?.applyImpulse(CGVector(dx: 5, dy: -5))
 
-        // Make one of the bars that will hold the people.
+        // Make the left player on the top bar.
+        let topLeftPlay = SKSpriteNode(color: .red, size: CGSize(width: 40, height: 10))
+        topLeftPlay.name = "topLeftPlay"
+        topLeftPlay.position = CGPoint(x: self.size.width * 0.25, y: self.size.height * 0.375)
 
-        let character1 = SKSpriteNode(imageNamed: "FoosballTable")
-        character1.position = CGPoint(x: self.size.width * 0.25, y: self.size.height * 0.25)
+        // Add the topLefPlay to the screen.
+        self.addChild(topLeftPlay)
 
-        // Add the bar to the screen.
-        self.addChild(character1)
+        // Deal with the physics of the top left player.
+        topLeftPlay.physicsBody = SKPhysicsBody(rectangleOf: topLeftPlay.frame.size)
+        topLeftPlay.physicsBody?.friction = 0.4
+        topLeftPlay.physicsBody?.restitution = 0.1
+        topLeftPlay.physicsBody?.isDynamic = false
+        
+        // Make the right player on the top bar.
+        let topRightPlay = SKSpriteNode(color: .red, size: CGSize(width: 40, height: 10))
+        topRightPlay.name = "topRightPlay"
+        topRightPlay.position = CGPoint(x: self.size.width * 0.75, y: self.size.height * 0.375)
+        
+        // Add topRightPlay to the screen.
+        self.addChild(topRightPlay)
+        
+        // Add the topRightPlay to the screen.
+        topRightPlay.physicsBody = SKPhysicsBody(rectangleOf: topRightPlay.frame.size)
+        topRightPlay.physicsBody?.friction = 0.4
+        topRightPlay.physicsBody?.restitution = 0.1
+        topRightPlay.physicsBody?.isDynamic = false
+        
+        // Make the bottom player.
+        let botPlay = SKSpriteNode(color: .red, size: CGSize(width: 40, height: 10))
+        botPlay.name = "botPlay"
+        botPlay.position = CGPoint(x: self.size.width * 0.5, y: self.size.height * 0.125)
+        
+        // Deal with the physics of the bottom player.
+        botPlay.physicsBody = SKPhysicsBody(rectangleOf: botPlay.frame.size)
+        botPlay.physicsBody?.friction = 0.4
+        botPlay.physicsBody?.restitution = 0.1
+        botPlay.physicsBody?.isDynamic = false
+        
+        // Add the bottom player to the screen.
+        self.addChild(botPlay)
 
-        // Deal with the physics of the bar.
-        character1.physicsBody = SKPhysicsBody(rectangleOf: character1.frame.size)
-        character1.physicsBody?.friction = 0.4
-        character1.physicsBody?.restitution = 0.1
-        character1.physicsBody?.isDynamic = false
+        // Make the top goal.
+        let goalTop = SKShapeNode(rectOf: CGSize(width: 120, height: 20))
+        goalTop.position = CGPoint(x: self.size.width * 0.5, y: 0)
+        goalTop.fillColor = SKColor.red
 
-        // Make the left goal.
-        let goalLeft = SKShapeNode(rectOf: CGSize(width: 20, height: 120))
-        goalLeft.position = CGPoint(x: 0, y: self.size.height * 0.5)
-        goalLeft.fillColor = SKColor.red
-
-        // Make the right goal.
-        let goalRight = SKShapeNode(rectOf: CGSize(width: 20, height: 120))
-        goalRight.position = CGPoint(x: self.size.width, y: self.size.height * 0.5)
-        goalRight.fillColor = SKColor.red
+        // Make the bottom goal.
+        let goalBot = SKShapeNode(rectOf: CGSize(width: 120, height: 20))
+        goalBot.position = CGPoint(x: self.size.width * 0.5, y: 0)
+        goalBot.fillColor = SKColor.red
 
         // Add both goals to the screen.
-        self.addChild(goalLeft)
-        self.addChild(goalRight)
+        self.addChild(goalTop)
+        self.addChild(goalBot)
     }
 
     required init?(coder aDecorder: NSCoder) {
         super.init(coder: aDecorder)
     }
     
-    func move(oldPosition: CGPoint, newPosition: CGPoint) {
-       // let character1 = self.childNode(withName: playerCategoryName) as! SKSpriteNode
-        
-        let xDistance = fabs(oldPosition.x - newPosition.x)
-        let yDistance = fabs(oldPosition.y - newPosition.y)
-        let distance = sqrt(xDistance * xDistance + yDistance * yDistance)
-        let sceneDiag = sqrt(self.frame.size.width * self.frame.size.width + self.frame.size.height * self.frame.size.height)
-        print(distance)
-        
-        character1.run(SKAction.move(to: newPosition, duration: Double(distance / sceneDiag)))
-    }
-    
+    // Checks if player is out of bounds and reset position to the max and minimum.
+    func outBounds(player: SKSpriteNode) {
+        if (player.position.x < 0) {
+            player.position.x = 20
+        }
+            if(player.position.x > self.size.width ) {
+                player.position.x = self.size.width - 20
+            }
+        }
     // Tells object that a touch has been inputted to the view.
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        
-        // The UITouch object holds all of the touch input like force, velocity, and duration.
-        let touch = touches.first // as UITouch = (already knows).
-        let touchLocation = touch?.location(in: self)
-        
-        if (topRightQuad.contains(touchLocation)) {
-            print("In the top right quadrant.")
-        }
-        
-        
-        // Make sure that what touch is touching is actually the Foosball player.
-        let body: SKPhysicsBody? = self.physicsWorld.body(at: touchLocation!)
-        
+        fingerOnScreen = true
     }
+
     
     // Sends a signal to the gesture recognizers after touch has been identified.
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        /* let character1 = self.childNode(withName: playerCategoryName) as! SKSpriteNode
-        
-        let touchLocation = touches.first!.location(in: self)
-        if(character1.contains(touchLocation)) {
-            move(oldPosition: character1.position, newPosition: touchLocation)
+        if (fingerOnScreen) {
+            // The UITouch object holds all of the touch input like force, velocity, and duration.
+            let touch = touches.first // as UITouch = (already knows).
+            let touchLocation = touch?.location(in: self)
+            
+            // Search and assign for each of the player nodes.
+            let topLeftPlay = self.childNode(withName: "topLeftPlay") as! SKSpriteNode
+            let topRightPlay = self.childNode(withName: "topRightPlay") as! SKSpriteNode
+            let botPlay = self.childNode(withName: "botPlay") as! SKSpriteNode
+            
+            if (topRightQuad.contains(touchLocation!)) {
+                topRightPlay.position.x += 20
+                topLeftPlay.position.x += 20
+            }
+            
+            if (topLeftQuad.contains(touchLocation!)) {
+                topLeftPlay.position.x -= 20
+                topRightPlay.position.x -= 20
+            }
+            
+            if (bottomRightQuad.contains(touchLocation!)) {
+                botPlay.position.x += 20
+            }
+            
+            if (bottomLeftQuad.contains(touchLocation!)) {
+                botPlay.position.x -= 20
+            }
+            
+            outBounds(player: topRightPlay)
+            outBounds(player: topLeftPlay)
+            outBounds(player: botPlay)
+            
         }
-        
-        /*
-        if fingerOnBar {
-            
-            let touch = touches.first
-            let touchLocation = touches.first!.location(in: self.view)
-            let prevTouchLoc = touch?.previousLocation(in: self)
-            let character1 = self.childNode(withName: playerCategoryName) as! SKSpriteNode
-            
-            // Configure the player position.
-            var newYPos = character1.position.y - (touchLocation.y - prevTouchLoc!.y)
-            
-            // Set constraints so that the bar doesn't go off the screen.
-            newYPos = max(character1.size.height / 2, newYPos)
-            newYPos = min(self.size.height - character1.size.height / 2, newYPos)
-            
-            character1.position = CGPoint(x: character1.position.x, y: newYPos)
-        }
- */
     }
     
     
      // Responder is signalled when fingers are lifted, and the touch input ends.
      override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        fingerOnScreen = false
      }
-  */
-    }
 }
 
+//let gameScene = GameScene(size: CGSize(width: 320, height: 480))
 let gameScene = GameScene(size: skView.bounds.size)
-gameScene.scaleMode = .aspectFill
+//gameScene.scaleMode = .aspectFill
 
 // Done configuring the scene, time to present it to be interacted with.
 skView.presentScene(gameScene)
