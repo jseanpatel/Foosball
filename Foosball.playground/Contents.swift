@@ -8,16 +8,18 @@ import AVFoundation
 // MARK: Control the view.
 let skView = SKView(frame: CGRect(x: 0, y: 0, width: 320, height: 480))
 
-// Quadrants of the screen for touch ID.
-
 class GameScene: SKScene {
 
-
+    // Represent each of the quadrants that can be touched.
     var topRightQuad = CGRect(x: skView.frame.width * 0.5, y: skView.frame.height * 0.25, width: skView.frame.width * 0.5, height: skView.frame.height * 0.25)
     var bottomRightQuad = CGRect(x: skView.frame.width * 0.5, y: 0, width: skView.frame.width * 0.5, height: skView.frame.height * 0.25)
     var topLeftQuad = CGRect(x: 0, y: skView.frame.height * 0.25, width: skView.frame.width * 0.5, height: skView.frame.height * 0.25)
     var bottomLeftQuad = CGRect(x: 0, y: 0, width: skView.frame.width * 0.5, height: skView.frame.height * 0.25)
-
+    
+    // Represent the regions where the goals can be touched.
+    var topGoalRect = CGRect(x: skView.frame.width * 0.3125, y: skView.frame.height - 10, width: 120, height: 10)
+    var botGoalRect = CGRect(x: skView.frame.width * 0.3125, y: 0, width: 120, height : 10)
+    
     // Use to play background music while playground is running.
     let backgroundMusicPlayer = AVAudioPlayer()
 
@@ -26,9 +28,26 @@ class GameScene: SKScene {
     var touchTopLeft = false
     var touchBotLeft = false
     var touchBotRight = false
+    
+    // Variables to know when a score has occured.
+    var scoreTop = false
+    var scoreBot = false
+    
+    // Variables to tell when finger is on player for swiping.
+    var swipeTopLeft = false
+    var swipeTopRight = false
+    var swipeBot = false
+    
+    // Variables to check when the ball has crossed the goal.
+    var touchTopGoal = false
+    var touchBotGoal = false
 
     override init(size: CGSize) {
         super.init(size: size)
+        
+        var q1 = SKShapeNode(rect: botGoalRect)
+        q1.fillColor = .blue
+        self.addChild(q1)
 
         /**
         // Come back to configure the music and background here.
@@ -46,24 +65,24 @@ class GameScene: SKScene {
         self.physicsBody = tableBorder
         self.physicsBody?.friction = 0
 
-
         // Make a test ball.
         let ball = SKShapeNode(circleOfRadius: 10)
-
-        ball.position = CGPoint(x: self.size.width * 0.50, y: self.size.height * 0.5)
+        
+        ball.position = CGPoint(x: self.size.width * 0.50, y: self.size.height * 0.9)
         ball.fillColor = SKColor.purple
         ball.lineWidth = 5
         ball.strokeColor = SKColor.orange
-
+        ball.name = "ball"
+        
         // Add the ball to the screen.
         self.addChild(ball)
-
+        
         // Deal with the physics of the ball.
         ball.physicsBody = SKPhysicsBody(circleOfRadius: ball.frame.size.width / 2)
         ball.physicsBody?.restitution = 1
         ball.physicsBody?.linearDamping = 0
         ball.physicsBody?.allowsRotation = false
-
+        
         // Get the ball moving.
         ball.physicsBody?.applyImpulse(CGVector(dx: 5, dy: -5))
 
@@ -86,10 +105,13 @@ class GameScene: SKScene {
         self.addChild(topLeftEnemy)
         self.addChild(topRightEnemy)
         self.addChild(botEnemy)
+        
+         botEnemy.physicsBody?.applyImpulse(CGVector(dx: 5, dy: -5))
+        
 
         // Make the goals on the screen.
-        let topGoal = Goal(image: "noimageyet", xPosition: self.size.width * 0.5, yPosition: self.size.height)
-        let botGoal = Goal(image: "noimageyet", xPosition: self.size.width * 0.50, yPosition: 0)
+        let topGoal = Goal(image: "noimageyet", xPosition: self.size.width * 0.5, yPosition: self.size.height, title: "topGoal")
+        let botGoal = Goal(image: "noimageyet", xPosition: self.size.width * 0.50, yPosition: 0, title: "topGoal")
 
         // Add the goals to the screen.
         self.addChild(topGoal)
@@ -121,6 +143,7 @@ class GameScene: SKScene {
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         let touch = touches.first // as UITouch = (already knows).
         let touchLocation = touch?.location(in: self)
+        
 
         if (topRightQuad.contains(touchLocation!)) {
             touchTopRight = true
@@ -137,6 +160,50 @@ class GameScene: SKScene {
         if (bottomLeftQuad.contains(touchLocation!)) {
             touchBotLeft = true
         }
+        
+        let body: SKPhysicsBody? = self.physicsWorld.body(at: touchLocation!)
+        
+        if (body?.node?.name == "topLeftPlay") {
+            swipeTopLeft = true
+        }
+        
+        if (body?.node?.name == "topRightPlay") {
+            swipeTopRight = true
+        }
+        
+        if (body?.node?.name == "botPlay") {
+            swipeBot = true
+        }
+    }
+   
+    
+    // Is triggered when a touch is held and dragged.
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        
+        let touch = touches.first
+        let touchLocation = touch?.location(in: self)
+        let prevTouchLoc = touch?.previousLocation(in: self)
+        
+        // Search and assign references for each of the player nodes.
+        let topLeftPlay = self.childNode(withName: "topLeftPlay") as! Player
+        let topRightPlay = self.childNode(withName: "topRightPlay") as! Player
+        let botPlay = self.childNode(withName: "botPlay") as! Player
+        
+        if (swipeTopLeft && (Int((touchLocation?.y)!) > Int((prevTouchLoc?.y)!))) {
+            topLeftPlay.position.y += 20
+            topLeftPlay.position.y -= 20
+        }
+        
+        if (swipeTopRight && (Int((touchLocation?.y)!) > Int((prevTouchLoc?.y)!))) {
+            topRightPlay.position.y += 20
+            topRightPlay.position.y -= 20
+        }
+        
+        if (swipeBot && (Int((touchLocation?.y)!) > Int((prevTouchLoc?.y)!))) {
+            botPlay.position.y += 20
+            botPlay.position.y -= 20
+        }
+        
     }
 
     override func update(_ currentTime: TimeInterval) {
@@ -151,41 +218,57 @@ class GameScene: SKScene {
         let topRightEnemy = self.childNode(withName: "topRightEnemy") as! Player
         let botEnemy = self.childNode(withName: "botEnemy") as! Player
 
-        // Generate the value for random movement every second.
-        let randMovement = CGFloat(arc4random_uniform(30))
+        // Make a reference to find the location of the ball.
+        let ball = self.childNode(withName: "ball") as! SKShapeNode
+        let ballPosition = ball.position
+        
+        if (topGoalRect.contains(ballPosition)) {
+            print("good")
+        }
         
         // If a specific quadrant is touched, then move the player in that direciton, and the enemy in a random response.
         
         if (touchTopRight) {
-            if (topRightPlay.outBoundsRight(currPosition: topRightPlay.position.x)) {
+            if (topRightPlay.inBoundsRight(currPosition: topRightPlay.position.x)) {
                 topRightPlay.position.x += 20
                 topLeftPlay.position.x += 20
             }
-            topRightEnemy.position.x += randMovement
-            topLeftEnemy.position.x += randMovement
         }
         if (touchTopLeft) {
-            if (topLeftPlay.outBoundsLeft(currPosition: topLeftPlay.position.x)) {
+            if (topLeftPlay.inBoundsLeft(currPosition: topLeftPlay.position.x)) {
                 topLeftPlay.position.x -= 20
                 topRightPlay.position.x -= 20
             }
-            topLeftEnemy.position.x -= randMovement
-            topRightEnemy.position.x -= randMovement
         }
 
         if (touchBotRight) {
-            if (botPlay.outBoundsRight(currPosition: botPlay.position.x)) {
+            if (botPlay.inBoundsRight(currPosition: botPlay.position.x)) {
                 botPlay.position.x += 20
             }
-            botEnemy.position.x += randMovement
         }
 
         if (touchBotLeft) {
-            if (botPlay.outBoundsLeft(currPosition: botPlay.position.x)) {
+            if (botPlay.inBoundsLeft(currPosition: botPlay.position.x)) {
                 botPlay.position.x -= 20
             }
-            botEnemy.position.x -= randMovement
         }
+     /**
+        while (topRightEnemy.inBoundsRight(currPosition: topRightEnemy.position.x)) {
+            // Variable for random movement amount.
+            let randMove = arc4random_uniform(20)
+            
+            topLeftEnemy.position.x += CGFloat(randMove)
+            topRightEnemy.position.x += CGFloat(randMove)
+        }
+        while (topLeftEnemy.inBoundsLeft(currPosition: topLeftEnemy.position.x)) {
+            // Variable for random movement amount.
+            let randMove = arc4random_uniform(20)
+            
+            topLeftEnemy.position.x += CGFloat(randMove)
+            topRightEnemy.position.x += CGFloat(randMove)
+        }
+ */
+        
     }
 
     // Responder is signalled when fingers are lifted, and the touch input ends.
@@ -226,8 +309,8 @@ class Player: SKSpriteNode {
 
         // Set each player's physics.
         self.physicsBody = SKPhysicsBody(rectangleOf: self.frame.size)
-        self.physicsBody?.friction = 0.4
-        self.physicsBody?.restitution = 0.1
+        self.physicsBody?.friction = 1
+        self.physicsBody?.restitution = 0
         self.physicsBody?.isDynamic = false
 
         // For the time being every player is being made with uniform width and height.
@@ -238,14 +321,16 @@ class Player: SKSpriteNode {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func outBoundsRight(currPosition: CGFloat) -> Bool {
+    // Return if the player's position will keep them in bounds after a move.
+    
+    func inBoundsRight(currPosition: CGFloat) -> Bool {
         if (currPosition + 50 < (skView.frame.width)) {
             return true
         }
         return false
     }
     
-    func outBoundsLeft(currPosition: CGFloat) -> Bool {
+    func inBoundsLeft(currPosition: CGFloat) -> Bool {
         if (currPosition - 50 > 0) {
             return true
         }
@@ -257,10 +342,11 @@ class Player: SKSpriteNode {
 class Goal: SKSpriteNode {
 
     /// Make a new SKSpriteNode goal with parameters for Foosball.
-    init(image: String, xPosition: CGFloat, yPosition: CGFloat) {
+    init(image: String, xPosition: CGFloat, yPosition: CGFloat, title: String) {
         let texture = SKTexture(imageNamed: image)
         super.init(texture: texture, color: .blue, size: CGSize(width: 120, height: 10))
         self.position = CGPoint(x: xPosition, y: yPosition)
+        self.name = title
     }
 
     required init?(coder aDecoder: NSCoder) {
