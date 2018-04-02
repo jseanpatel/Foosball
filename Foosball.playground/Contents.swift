@@ -13,18 +13,11 @@ let skView = SKView(frame: CGRect(x: 0, y: 0, width: 320, height: 480))
 class GameScene: SKScene {
 
     // : Introduction
-    
     // Represent each of the quadrants that can be touched.
     var topRightQuad = CGRect(x: skView.frame.width * 0.5, y: skView.frame.height * 0.25, width: skView.frame.width * 0.5, height: skView.frame.height * 0.25)
     var bottomRightQuad = CGRect(x: skView.frame.width * 0.5, y: 0, width: skView.frame.width * 0.5, height: skView.frame.height * 0.25)
     var topLeftQuad = CGRect(x: 0, y: skView.frame.height * 0.25, width: skView.frame.width * 0.5, height: skView.frame.height * 0.25)
     var bottomLeftQuad = CGRect(x: 0, y: 0, width: skView.frame.width * 0.5, height: skView.frame.height * 0.25)
-
-    /*
-    // Represent the regions where the goals can be scored.
-    var topGoalRect = CGRect(x: skView.frame.width * 0.3125, y: skView.frame.height - 10, width: 120, height: 10)
-    var botGoalRect = CGRect(x: skView.frame.width * 0.3125, y: 0, width: 120, height: 10)
- */
 
     // Variables to know when finger is continuously on screen.
     var touchTopRight = false
@@ -46,6 +39,33 @@ class GameScene: SKScene {
 
         super.init(size: size)
 
+        // Make the top bar of the player.
+        let topPlayBar = SKShapeNode(rectOf: CGSize(width: 320, height: 3))
+        topPlayBar.position = CGPoint(x: self.size.width * 0.5, y: self.size.height * 0.375)
+        topPlayBar.fillColor = .red
+        topPlayBar.strokeColor = .red
+        self.addChild(topPlayBar)
+
+        // Make the bot bar of the player.
+        let botPlayBar = SKShapeNode(rectOf: CGSize(width: 320, height: 3))
+        botPlayBar.position = CGPoint(x: self.size.width * 0.5, y: self.size.height * 0.125)
+        botPlayBar.fillColor = .red
+        botPlayBar.strokeColor = .red
+        self.addChild(botPlayBar)
+
+        // Make the top bar of the enemy.
+        let topEnemyBar = SKShapeNode(rectOf: CGSize(width: 320, height: 3))
+        topEnemyBar.position = CGPoint(x: self.size.width * 0.5, y: self.size.height * 0.625)
+        topEnemyBar.fillColor = .blue
+        topEnemyBar.strokeColor = .blue
+        self.addChild(topEnemyBar)
+
+        // Make the bot bar of the enemy.
+        let botEnemyBar = SKShapeNode(rectOf: CGSize(width: 320, height: 3))
+        botEnemyBar.position = CGPoint(x: self.size.width * 0.5, y: self.size.height * 0.875)
+        botEnemyBar.fillColor = .blue
+        botEnemyBar.strokeColor = .blue
+        self.addChild(botEnemyBar)
 
         // Come back to configure the music and background here.
         let backgroundImage = SKSpriteNode(imageNamed: "foosballfield")
@@ -123,9 +143,13 @@ class GameScene: SKScene {
         self.addChild(topRightEnemy)
         self.addChild(botEnemy)
 
-        // Make the goals on the screen.
-        let topGoal = Goal(image: "noimageyet", xPosition: self.size.width * 0.5, yPosition: self.size.height, title: "topGoal")
-        let botGoal = Goal(image: "noimageyet", xPosition: self.size.width * 0.5, yPosition: -2, title: "botGoal")
+        // Meant to be transparent to represent the area which alligns with the background.
+        let topGoal = Goal(image: "goal.png", xPosition: self.size.width * 0.5, yPosition: self.size.height, title: "topGoal")
+        let botGoal = Goal(image: "goal.png", xPosition: self.size.width * 0.5, yPosition: -2, title: "botGoal")
+
+        // Make the goals transparent.
+        topGoal.alpha = 1
+        botGoal.alpha = 1
 
         // Add the goals to the screen.
         self.addChild(topGoal)
@@ -170,6 +194,14 @@ class GameScene: SKScene {
         }
     }
 
+    // Reset the position of the ball to play another round. Also, add movement.
+    func resetBall() {
+        let ball = self.childNode(withName: "ball") as! SKShapeNode
+        ball.position.x = skView.frame.width * 0.5
+        ball.position.y = skView.frame.height * 0.5
+        ball.physicsBody?.applyImpulse(CGVector(dx: 5, dy: -5))
+    }
+
     override func update(_ currentTime: TimeInterval) {
 
         // Search and assign references for each of the player nodes.
@@ -186,8 +218,8 @@ class GameScene: SKScene {
         let ball = self.childNode(withName: "ball") as! SKShapeNode
 
         // Search and assign references for the scores.
-        var score = self.childNode(withName: "score") as! SKLabelNode
-        var oppScore = self.childNode(withName: "oppScore") as! SKLabelNode
+        let score = self.childNode(withName: "score") as! SKLabelNode
+        let oppScore = self.childNode(withName: "oppScore") as! SKLabelNode
 
         // Search and assign references for each of the goals.
         let topGoal = self.childNode(withName: "topGoal") as! Goal
@@ -199,49 +231,57 @@ class GameScene: SKScene {
             if (topRightPlay.willBeInBoundsRight(currNode: topRightPlay)) {
                 topRightPlay.position.x += 20
                 topLeftPlay.position.x += 20
+                if (topRightEnemy.willBeInBoundsRight(currNode: topRightEnemy)) {
+                    let randMovement = arc4random_uniform(20)
+                    topRightEnemy.position.x += CGFloat(randMovement)
+                    topLeftEnemy.position.x += CGFloat(randMovement)
+                }
             }
         }
         if (touchTopLeft) {
             if (topLeftPlay.willBeInBoundsLeft(currNode: topLeftPlay)) {
                 topLeftPlay.position.x -= 20
                 topRightPlay.position.x -= 20
+                if (topLeftEnemy.willBeInBoundsLeft(currNode: topLeftEnemy)) {
+                    let randMovement = arc4random_uniform(20)
+                    topLeftEnemy.position.x -= CGFloat(randMovement)
+                    topRightEnemy.position.x -= CGFloat(randMovement)
+                }
             }
         }
 
         if (touchBotRight) {
             if (botPlay.willBeInBoundsRight(currNode: botPlay)) {
-                print("true")
                 botPlay.position.x += 20
-            } else {
-                print("false")
+                if (botEnemy.willBeInBoundsRight(currNode: botEnemy)) {
+                    let randMovement = arc4random_uniform(20)
+                    botEnemy.position.x += CGFloat(randMovement)
+                }
             }
         }
+            if (touchBotLeft) {
+                if (botPlay.willBeInBoundsLeft(currNode: botPlay)) {
+                    botPlay.position.x -= 20
+                    if (botEnemy.willBeInBoundsLeft(currNode: botEnemy)) {
+                        let randMovement = arc4random_uniform(20)
+                        botEnemy.position.x -= CGFloat(randMovement)
+                    }
+                }
+            }
 
-        if (touchBotLeft) {
-            if (botPlay.willBeInBoundsLeft(currNode: botPlay)) {
-                print("true")
-                botPlay.position.x -= 20
-            } else {
-                print("false")
+            // Score on the bot goal. Opponent scores.
+            if ((ball.position.y < botGoal.position.y + 20) && (ball.position.x > 100 && ball.position.x < 220)) {
+                addScore(scoreLabel: oppScore, isEnemy: true)
+                resetBall()
+            }
+
+            // Score on the top goal. Player scores.
+            if ((ball.position.y > topGoal.position.y - 20) && (ball.position.x > 100 && ball.position.x < 220)) {
+                addScore(scoreLabel: score, isEnemy: false)
+                resetBall()
+
             }
         }
-
-        // Keep the top bar always moving left.
-
-
-        // Score on the bot goal. Opponent scores.
-        if ((ball.position.y < botGoal.position.y + 20) && (ball.position.x > 100 && ball.position.x < 220)) {
-            addScore(scoreLabel: oppScore, isEnemy: true)
-            resetBall()
-        }
-
-        // Score on the top goal. Player scores.
-        if ((ball.position.y > topGoal.position.y - 20) && (ball.position.x > 100 && ball.position.x < 220)) {
-            addScore(scoreLabel: score, isEnemy: false)
-            resetBall()
-
-        }
-    }
 
     // Responder is signalled when fingers are lifted, and the touch input ends.
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -264,14 +304,6 @@ class GameScene: SKScene {
         if (bottomLeftQuad.contains(touchLocation!)) {
             touchBotLeft = false
         }
-    }
-
-    // Reset the position of the ball to play another round. Also, add movement.
-    func resetBall() {
-        let ball = self.childNode(withName: "ball") as! SKShapeNode
-        ball.position.x = skView.frame.width * 0.5
-        ball.position.y = skView.frame.height * 0.5
-        ball.physicsBody?.applyImpulse(CGVector(dx: 5, dy: -5))
     }
 }
 class Player: SKSpriteNode {
@@ -301,18 +333,18 @@ class Player: SKSpriteNode {
         fatalError("init(coder:) has not been implemented")
     }
 
+    func willBeInBoundsLeft(currNode: SKSpriteNode) -> Bool {
+        if (currNode.position.x - 50 > 0) {
+            return true
+        } else {
+            return false
+        }
+    }
+
     // Return if the player's position will keep them in bounds after a move.
 
     func willBeInBoundsRight(currNode: SKSpriteNode) -> Bool {
         if (currNode.position.x < 270) {
-            return true
-        } else {
-        return false
-        }
-    }
-
-    func willBeInBoundsLeft(currNode: SKSpriteNode) -> Bool {
-        if (currNode.position.x - 50 > 0) {
             return true
         } else {
             return false
@@ -326,7 +358,7 @@ class Goal: SKSpriteNode {
 
     /// Make a new SKSpriteNode goal with parameters for Foosball.
     init(image: String, xPosition: CGFloat, yPosition: CGFloat, title: String) {
-        let texture = SKTexture(imageNamed: image)
+        let texture = SKTexture(imageNamed: "goal.png")
         super.init(texture: texture, color: .blue, size: CGSize(width: 120, height: 30))
         self.position = CGPoint(x: xPosition, y: yPosition)
         self.name = title
